@@ -1,0 +1,32 @@
+
+spring:
+  application:
+    name: rinha
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/rinha_payments
+    username: ${DB_USER:rinha_user}
+    password: ${DB_PASSWORD:rinha_pass}
+    pool:
+      initial-size: 10
+      max-size: 50
+      max-idle-time: 30m
+      max-acquire-time: 10s
+      max-create-connection-time: 10s
+      validation-query: SELECT 1
+      max-life-time: 30m
+      validation-depth: LOCAL
+
+server:
+  port: 8080
+payment:
+  processor:
+    main:
+      healthcheck-url: ${PROCESSOR_DEFAULT_URL}/payments/service-health
+      pay-url: ${PROCESSOR_DEFAULT_URL}/payments
+    fallback:
+      healthcheck-url: ${PROCESSOR_FALLBACK_URL}/payments/service-health
+      pay-url: ${PROCESSOR_FALLBACK_URL}/payments
+logging:
+  level:
+    io.r2dbc.postgresql.QUERY: DEBUG  # Enable for debugging
+    org.springframework.r2dbc: DEBUG   # Enable for debugging

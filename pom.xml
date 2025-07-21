@@ -36,14 +36,29 @@
 			<artifactId>spring-boot-starter-webflux</artifactId>
 		</dependency>
 
-		<!-- R2DBC + H2 -->
+		<!-- R2DBC + PostgreSQL -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-r2dbc</artifactId>
 		</dependency>
+
+
+		<!-- PostgreSQL R2DBC Driver -->
+		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>r2dbc-postgresql</artifactId>
+		</dependency>
+
+		<!-- R2DBC Connection Pool -->
 		<dependency>
 			<groupId>io.r2dbc</groupId>
-			<artifactId>r2dbc-h2</artifactId>
+			<artifactId>r2dbc-pool</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+			<scope>runtime</scope>
 		</dependency>
 
 		<!-- Validator -->

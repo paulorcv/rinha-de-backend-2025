@@ -1,23 +1,98 @@
 version: "3.9"
 services:
-  payment-api:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: rinha_payments
+      POSTGRES_USER: rinha_user
+      POSTGRES_PASSWORD: rinha_pass
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/postgresql.conf:/etc/postgresql/postgresql.conf
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          cpus: "0.3"
+          memory: "70MB"
+
+  payment-api-1:
     build:
       context: .
       dockerfile: Dockerfile-local
     image: paulorcv/rinha-de-backend-2025:latest
     ports:
-      - "9999:9999"
-    networks:
-      - backend
-      - payment-processor
+      - "8080:8080"
+    depends_on:
+      - postgres
     environment:
       - PROCESSOR_DEFAULT_URL=http://payment-processor-default:8080
       - PROCESSOR_FALLBACK_URL=http://payment-processor-fallback:8080
+      - DB_USER=rinha_user
+      - DB_PASSWORD=rinha_pass
+      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/rinha_payments
+      - INSTANCE_ID=api-1
+    networks:
+      - backend
+      - payment-processor
     deploy:
       resources:
         limits:
-          cpus: "0.75"
-          memory: "100MB"
+          cpus: "0.5"
+          memory: "105MB"
+
+  payment-api-2:
+    build:
+      context: .
+      dockerfile: Dockerfile-local
+    image: paulorcv/rinha-de-backend-2025:latest
+    ports:
+      - "8081:8080"
+    depends_on:
+      - postgres
+    environment:
+      - PROCESSOR_DEFAULT_URL=http://payment-processor-default:8080
+      - PROCESSOR_FALLBACK_URL=http://payment-processor-fallback:8080
+      - DB_USER=rinha_user
+      - DB_PASSWORD=rinha_pass
+      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/rinha_payments
+      - INSTANCE_ID=api-2
+    networks:
+      - backend
+      - payment-processor
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: "105MB"
+
+  load-balancer:
+    image: nginx:alpine
+    restart: always
+    container_name: rinha-load-balancer
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - payment-api-1
+      - payment-api-2
+    ports:
+      - "9999:9999"
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: "70MB"
+
+volumes:
+  postgres_data:
+
 networks:
   backend:
     driver: bridge

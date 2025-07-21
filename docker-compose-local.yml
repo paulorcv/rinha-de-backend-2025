@@ -1,0 +1,25 @@
+version: "3.9"
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: rinha-postgres-local
+    environment:
+      POSTGRES_DB: rinha_payments
+      POSTGRES_USER: rinha_user
+      POSTGRES_PASSWORD: rinha_pass
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/postgresql.conf:/etc/postgresql/postgresql.conf
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+    networks:
+      - local-backend
+
+volumes:
+  postgres_data:
+
+networks:
+  local-backend:
+    driver: bridge
