@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -42,22 +43,44 @@ public class PaymentService {
 
 	private final AtomicReference<ServiceHealthResponse> mainHealthCache = new AtomicReference<>();
 	private final AtomicReference<ServiceHealthResponse> fallbackHealthCache = new AtomicReference<>();
+	private final Sinks.Many<PaymentRequest> paymentQueue = Sinks.many().unicast().onBackpressureBuffer();
+
 
 	@PostConstruct
 	public void scheduleHealthChecks() {
 		WebClient wc = webClientBuilder.build();
 
-		Flux.interval(java.time.Duration.ZERO, java.time.Duration.ofSeconds(5))
+		Flux.interval(java.time.Duration.ZERO, java.time.Duration.ofSeconds(5)).doOnNext(tick -> log.info("Health check main tick: {}", tick))
 				.flatMap(tick -> wc.get().uri(mainHealthUrl).retrieve().bodyToMono(ServiceHealthResponse.class).doOnNext(mainHealthCache::set).doOnError(e -> log.warn("Main health check failed: {}", e.getMessage())).onErrorResume(e -> Mono.empty()))
 				.subscribe();
 
-		Flux.interval(java.time.Duration.ZERO, java.time.Duration.ofSeconds(5)).flatMap(
+		Flux.interval(java.time.Duration.ZERO, java.time.Duration.ofSeconds(5)).doOnNext(tick -> log.info("Health check main tick: {}", tick)).flatMap(
 				tick -> wc.get().uri(fallBackHealthUrl).retrieve().bodyToMono(ServiceHealthResponse.class).doOnNext(fallbackHealthCache::set).doOnError(e -> log.warn("Fallback health check failed: {}", e.getMessage()))
 						.onErrorResume(e -> Mono.empty())).subscribe();
 	}
 
-	// Consulta healthcheck, processa no primário se disponível, senão no fallback
-	public Mono<String> processPayment(PaymentRequest req) {
+	@PostConstruct
+	public void startPaymentWorker() {
+		paymentQueue.asFlux()
+				.concatMap(this::processPaymentInternal) // sequential processing
+				.subscribe(result -> log.info("Processed payment: {}", result),
+						error -> log.error("Payment worker error", error));
+	}
+
+	private Mono<String> processPaymentInternal(PaymentRequest req) {
+		return processPayment(req); // or callProcessor(...) as needed
+	}
+
+	public Mono<String> enqueuePayment(PaymentRequest req) {
+		Sinks.EmitResult emitResult = paymentQueue.tryEmitNext(req);
+		if (emitResult.isSuccess()) {
+			return Mono.just("Enqueued");
+		} else {
+			return Mono.error(new IllegalStateException("Queue is full or closed"));
+		}
+	}
+
+	private Mono<String> processPayment(PaymentRequest req) {
 
 		log.info("Processing payment request: {}", req);
 
@@ -66,7 +89,7 @@ public class PaymentService {
 				log.error("Payment already exists: {}", req.getCorrelationId());
 				return Mono.error(new IllegalArgumentException("Payment with correlationId " + req.getCorrelationId() + " already exists"));
 			}
-			log.error("Payment not exists: {}", req.getCorrelationId());
+			log.info("Payment not exists: {}", req.getCorrelationId());
 			return tryMainProcessor(req);
 		});
 	}
@@ -94,13 +117,8 @@ public class PaymentService {
 
 		if (fallbackHealthCache.get() == null || fallbackHealthCache.get().isFailing()) {
 			log.info("Fallback payment processor is failing, will retry main after 1s");
-			return Mono.delay(java.time.Duration.ofSeconds(1)).then(tryMainProcessor(req));
-		}
-
-		var minResponseTime = mainHealthCache.get() != null ? mainHealthCache.get().getMinResponseTime() : 100;
-
-		if (minResponseTime > 1000) {
-			return tryMainProcessor(req);
+			enqueuePayment(req);
+			return Mono.error(new IllegalArgumentException("Fallback is not health. Enqueuing request " + req));
 		}
 
 		return callProcessor(fallbackPayUrl, req, "FALLBACK");

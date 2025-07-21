@@ -16,8 +16,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1"
-          memory: "200MB"
+          cpus: "0.75"
+          memory: "100MB"
 networks:
   backend:
     driver: bridge

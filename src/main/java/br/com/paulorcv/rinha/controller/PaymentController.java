@@ -30,7 +30,7 @@ public class PaymentController {
 
         return reqMono
                 .flatMap(req ->
-                        service.processPayment(req)
+                        service.enqueuePayment(req)
                                 .map(type -> new PaymentResponse("SUCCESS", "Payment processed via processor: " + type))
                 )
                 .map(resp -> ResponseEntity.status(HttpStatus.CREATED).body(resp))
