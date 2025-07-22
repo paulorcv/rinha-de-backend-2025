@@ -8,6 +8,7 @@ services:
       POSTGRES_USER: rinha_user
       POSTGRES_PASSWORD: rinha_pass
       POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+      POSTGRES_CONF_LISTEN_ADDRESSES: "*"
     ports:
       - "5432:5432"
     volumes:
