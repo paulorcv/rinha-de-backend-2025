@@ -1,7 +1,7 @@
 -- Create payments table
 CREATE TABLE IF NOT EXISTS payments (
     id BIGSERIAL PRIMARY KEY,
-    correlation_id VARCHAR(255) NOT NULL,
+    correlation_id UUID NOT NULL,
     amount DECIMAL(19,2) NOT NULL,
     payment_type VARCHAR(50) NOT NULL CHECK (payment_type IN ('DEFAULT', 'FALLBACK')),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
