@@ -13,7 +13,8 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/postgresql.conf:/etc/postgresql/postgresql.conf
-    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+      - ./sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+#    command: postgres -c config_file=/etc/postgresql/postgresql.conf
     networks:
       - backend
     deploy:
