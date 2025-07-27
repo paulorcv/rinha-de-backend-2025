@@ -21,7 +21,7 @@ services:
       resources:
         limits:
           cpus: "0.3"
-          memory: "70MB"
+          memory: "50MB"
 
   payment-api-1:
     build:
@@ -46,7 +46,7 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: "105MB"
+          memory: "115MB"
 
   payment-api-2:
     build:
@@ -71,7 +71,7 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: "105MB"
+          memory: "115MB"
 
   load-balancer:
     image: nginx:alpine
