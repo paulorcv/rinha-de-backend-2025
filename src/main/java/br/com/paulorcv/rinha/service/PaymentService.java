@@ -15,7 +15,6 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
-import reactor.util.concurrent.Queues;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -54,18 +53,18 @@ public class PaymentService {
 	public void scheduleHealthChecks() {
 		WebClient wc = webClientBuilder.build();
 
-		Flux.interval(java.time.Duration.ZERO, java.time.Duration.ofSeconds(6)).doOnNext(tick -> log.info("Health check main tick: {}", tick))
+		Flux.interval(java.time.Duration.ZERO, java.time.Duration.ofSeconds(10)).doOnNext(tick -> log.info("Health check main tick: {}", tick))
 				.flatMap(tick -> wc.get().uri(mainHealthUrl).retrieve().bodyToMono(ServiceHealthResponse.class).doOnNext(mainHealthCache::set).doOnError(e -> log.warn("Main health check failed: {}", e.getMessage())).onErrorResume(e -> Mono.empty()))
 				.subscribe();
 
-		Flux.interval(java.time.Duration.ZERO, java.time.Duration.ofSeconds(6)).doOnNext(tick -> log.info("Health check main tick: {}", tick)).flatMap(
+		Flux.interval(java.time.Duration.ZERO, java.time.Duration.ofSeconds(10)).doOnNext(tick -> log.info("Health check main tick: {}", tick)).flatMap(
 				tick -> wc.get().uri(fallBackHealthUrl).retrieve().bodyToMono(ServiceHealthResponse.class).doOnNext(fallbackHealthCache::set).doOnError(e -> log.warn("Fallback health check failed: {}", e.getMessage()))
 						.onErrorResume(e -> Mono.empty())).subscribe();
 	}
 
 	@PostConstruct
 	public void startPaymentWorker() {
-		paymentQueue.asFlux().onBackpressureBuffer(5000) // Additional backpressure buffer
+		paymentQueue.asFlux().onBackpressureBuffer(20000) // Additional backpressure buffer
 				.concatMap(this::processPaymentInternal) // sequential processing
 				.subscribe(result -> log.info("Processed payment: {}", result), error -> log.error("Payment worker error", error));
 	}
