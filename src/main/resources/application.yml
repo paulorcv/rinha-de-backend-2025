@@ -7,14 +7,21 @@ spring:
     username: ${POSTGRES_USER:rinha_user}
     password: ${POSTGRES_PASSWORD:rinha_pass}
     pool:
-      initial-size: 10
-      max-size: 50
+      initial-size: 5
+      max-size: 10
       max-idle-time: 30m
-      max-acquire-time: 10s
-      max-create-connection-time: 10s
       validation-query: SELECT 1
-      max-life-time: 30m
-      validation-depth: LOCAL
+  reactor:
+    netty:
+      pool:
+        max-connections: 50
+      ioWorkerCount: 2
+      http:
+        server:
+          max-queue-size: 100
+      worker-count: 2
+  webflux:
+    max-in-memory-size: 2MB
 
 server:
   port: 8080

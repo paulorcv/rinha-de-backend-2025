@@ -14,7 +14,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/postgresql.conf:/etc/postgresql/postgresql.conf
       - ./sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql
-#    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
     networks:
       - backend
     deploy:
@@ -46,7 +46,7 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: "115MB"
+          memory: "120MB"
 
   payment-api-2:
     build:
@@ -71,7 +71,7 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: "115MB"
+          memory: "120MB"
 
   load-balancer:
     image: nginx:alpine
@@ -90,7 +90,7 @@ services:
       resources:
         limits:
           cpus: "0.2"
-          memory: "70MB"
+          memory: "60MB"
 
 volumes:
   postgres_data:
