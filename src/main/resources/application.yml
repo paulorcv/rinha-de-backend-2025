@@ -11,6 +11,8 @@ spring:
       max-size: 10
       max-idle-time: 30m
       validation-query: SELECT 1
+    properties:
+      connect-timeout: 10
   reactor:
     netty:
       pool:
@@ -35,5 +37,8 @@ payment:
       pay-url: ${PROCESSOR_FALLBACK_URL}/payments
 logging:
   level:
-    io.r2dbc.postgresql.QUERY: DEBUG  # Enable for debugging
-    org.springframework.r2dbc: DEBUG   # Enable for debugging
+    root: INFO
+    org.springframework.web: DEBUG
+    org.springframework.r2dbc: DEBUG
+    br.com.paulorcv.rinha: DEBUG
+
